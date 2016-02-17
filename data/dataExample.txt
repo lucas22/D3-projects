@@ -1,0 +1,38 @@
+# How the data is represented in the GPG file and structured to a JSON file
+# Original data model:
+    name VARCHAR
+    label VARCHAR
+    short_label type VARCHAR
+    type VARCHAR
+    url VARCHAR
+    timeinterval VARCHAR
+
+# Original data example:
+    '16','Peter Brusilovsky','Peter Brusilovsky','user','halley.exp.sis.pitt.edu/cn3/presentation2.php?conferenceID=97&userID=16','2013-02-24'
+    '17','Chirayu Wongchokprasitti','Chirayu Wongchokprasitti','user','halley.exp.sis.pitt.edu/cn3/presentation2.php?conferenceID=97&userID=17','2013-02-13'
+
+# JSON structure
+    var users [{
+        string userId
+        string userLabel
+        string userLabelShort
+        string userType
+        string userUrl
+        string userDate
+        }
+
+    var papers [{
+        string paperId
+        string paperLabel
+        string paperLabelShort
+        string paperType
+        string paperUrl
+        string paperDate
+        }
+    ]
+
+# JSON conversion example
+    var participants = [
+        {"userId":"16","userLabel":"Peter Brusilovsky","userLabelShort":"Peter Brusilovsky","userType":"user","url":"halley.exp.sis.pitt.edu/cn3/presentation2.php?conferenceID=97&userID=16","timeInterval":"2013-02-24"},
+        {"userId":"17","userLabel":"Chirayu Wongchokprasitti","userLabelShort":"Chirayu Wongchokprasitti","userType":"user","url":"halley.exp.sis.pitt.edu/cn3/presentation2.php?conferenceID=97&userID=17","timeInterval":"2013-02-13"}
+    ];

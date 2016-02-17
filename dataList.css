@@ -1,0 +1,21 @@
+body {
+    width: 90%;
+    margin-left: 5%;
+}
+li {
+    margin: 0.2em 2em 0.2em 2em;
+}
+
+.users {
+    display: block;
+    float: left;
+    padding: 1em;
+    background-color: #eee;
+}
+
+.papers {
+    display: block;
+    float: right;
+    padding: 1em;
+    background-color: #eee;
+}
