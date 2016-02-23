@@ -2,19 +2,22 @@
  * Created by Lucas Parzianello on 2/22/16.
  */
 
+// PARAMETERS:
 var dataObject;
-var dialog = false;
+var dialog = true;
+var dataFile = "data/data.json";
+var xUsers=280, xPapers=880;
+var width = $(window).width();
+var height = $(window).height();
 
-// Shows data retrieved
+
+// ELEMENT DRAWING:
 function drawElements () {
     // Execute when data is loaded
     console.log(dataObject);
 
     ////////////////////////////
     // Create the SVG Viewport
-    var width = $(window).width();
-    var height = $(window).height();
-
     var svgContainer = d3.select("body").append("svg")
         .attr("width", width*0.9)
         .attr("height", 3700);
@@ -22,8 +25,6 @@ function drawElements () {
 
     ////////////////////////////
     // Create USER information:
-
-    var xUsers=280, xPapers=880;
 
     d3.select("svg").append("div").attr("class","users");
     // Add USER circles to svgCcontainer
@@ -54,6 +55,7 @@ function drawElements () {
         .attr("font-size", "12px")
         .attr("text-anchor", "end");
 
+    if(dialog) alert("Users added");
 
     ////////////////////////////
     // Create PAPER information:
@@ -87,6 +89,8 @@ function drawElements () {
         .attr("font-size", "12px")
         .attr("text-anchor", "start");
 
+    if(dialog) alert("Papers added");
+
 
     ////////////////////////////
     // Create RELATION lines:
@@ -110,12 +114,13 @@ function drawElements () {
             .attr("stroke-width", 1)
             .attr("stroke", "grey");
 
+    if(dialog) alert("Relations created");
+
 }
 
-// Retrieve the data from file and call drawing function
-function retrieveAndDraw () {
 
-    var dataFile = "data/data.json";
+// DATA RETRIEVAL AND DRAWING CALL
+function retrieveAndDraw () {
 
     if(dialog) alert("The data is going to be retrieved from the JSON file");
 
