@@ -10,10 +10,11 @@ nArticles = 183
 gdf_name = "bipartite_nodes_CSCW2013_URL_time.gdf"  # input file name
 json_name = "data"                                  # output file name (no .json nor .*)
 sample_mode = False  # To generate the whole data, change sample_mode to false
-
+rDel = None
 if (sample_mode) :
     pDel = 10
     aDel = nParticipants + 10
+    rDel = nParticipants + nArticles + 11
     json_name += "Sample.json"
 else :
     pDel = nParticipants
@@ -29,16 +30,22 @@ def gdf2json (gdf_file) :
     elem_list = {}
     part = {}
     art = {}
+    rel = {}
     part_list = []
     art_list = []
+    rel_list = []
     saved = False
 
     json_file = open(json_name, "w")
-
+    try:
+        rDel
+    except NameError:
+        rDel = len(content)
+    
     for i,c in enumerate(content) :
         if (i <= pDel and i > 0):
             elem_list = c.rstrip("'\n").split("','");
-            #elem_list = re.split('\',\' | \'\n', c)
+
             if(len(elem_list) == 6):
                 part = {}
                 part['userId'] = elem_list[0]
@@ -51,7 +58,7 @@ def gdf2json (gdf_file) :
 
         elif (i > nParticipants and i <= aDel) :
             elem_list = c.rstrip("'\n").split("','");
-            #elem_list = re.split('\',\' | \'\n', c)
+
             if(len(elem_list) == 6):
                 art = {}
                 art['paperId'] = elem_list[0]
@@ -63,10 +70,20 @@ def gdf2json (gdf_file) :
 
                 art_list.append(art)
 
-    json_file.write("{\n\"users\" : " + json.dumps(part_list, json_file, indent=4))
-    json_file.write(",\n\"papers\" : " + json.dumps(art_list, json_file, indent=4) + "\n}")
+        elif (i > nParticipants+nArticles+1 and i <= rDel) :
+            elem_list = c.rstrip("'\n").split("','");
 
-    # TODO: also append later relations in the GDF file
+            if(len(elem_list) == 3):
+                rel = {}
+                rel['relUser'] = elem_list[0]
+                rel['relPaper'] = elem_list[1]
+                rel['relTime'] = elem_list[2]
+
+                rel_list.append(rel)
+
+    json_file.write("{\n\"users\" : " + json.dumps(part_list, json_file, indent=4))
+    json_file.write(",\n\"papers\" : " + json.dumps(art_list, json_file, indent=4))
+    json_file.write(",\n\"rel\" : " + json.dumps(rel_list, json_file, indent=4) + "\n}")
 
     return True
 

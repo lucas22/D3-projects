@@ -1,3 +1,7 @@
+/**
+ * Created by Lucas Parzianello on 2/14/16.
+ */
+
 // Creates 3 colored circles using D3 and a JSON file w/ data
 function circlesD3 () {
 
@@ -35,7 +39,7 @@ function circlesD3 () {
 // Shows data retrieved
 function dataListD3 () {
 
-    var dataSample, dialog = true;
+    var dataSample, dialog = false;
 
     if(dialog) alert("The data is going to be retrieved from the JSON file");
 
@@ -77,5 +81,39 @@ function dataListD3 () {
             .text( function (d, i) { return dataSample.papers[i].paperLabel; } );
 
         if(dialog) alert("The same happens to the papers");
+    }
+}
+
+// Shows relations of the data retrieved
+function relListD3 () {
+
+    var dataSample, dialog = false;
+
+    if(dialog) alert("The data is going to be retrieved from the JSON file");
+
+    // Retrieve data from JSON file
+    var oReq = new XMLHttpRequest();
+    oReq.onload = reqListener;
+    oReq.open("get", "data/data.json", true);
+    oReq.send();
+
+    // When data is loaded, execute:
+    function reqListener(e) {
+
+        dataSample = JSON.parse(this.responseText);
+
+        console.log(dataSample);
+
+        // Create HTML elements and list the information
+        d3.select("body").append("div").attr("class","Relations");
+        d3.select("div.Relations").append("h1").text("Relations:");
+        d3.select("div.Relations").append("ul").attr("id","relations_list");
+        var users = d3.select("body").select("ul#relations_list").selectAll("div.users")
+            .data(dataSample.rel)
+            .enter()
+            .append("li")
+            .attr("class", "relation_item")
+            .text( function (d, i) { return dataSample.rel[i].relPaper + " " + dataSample.rel[i].relUser + " " + dataSample.rel[i].relTime; } );
+
     }
 }
