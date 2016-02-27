@@ -1,5 +1,5 @@
 /**
- * Created by Lucas Parzianello on 2/22/16.
+ * Created by Lucas Parzianello on 2/27/16.
  */
 
 // PARAMETERS:
@@ -105,20 +105,20 @@ function drawElements () {
         .data(dataObject.rel)
         .enter()
         .insert("line", ":first-child") // place lines in the back
-            .attr("x1", xUsers)
-            .attr("y1", function(d) {
-                return dataObject.users.map( function(el){
+        .attr("x1", xUsers)
+        .attr("y1", function(d) {
+            return dataObject.users.map( function(el){
                     return el.userId;
                 }).indexOf(d.relUser)*(cRadius*2.5)+cRadius*2.5;
-            } )
-            .attr("x2", xPapers)
-            .attr("y2", function(d) {
-                return dataObject.papers.map( function(el){
+        } )
+        .attr("x2", xPapers)
+        .attr("y2", function(d) {
+            return dataObject.papers.map( function(el){
                     return el.paperId;
                 }).indexOf(d.relPaper)*(cRadius*2.5)+cRadius*2.5;
-            } )
-            .attr("stroke-width", 1)
-            .attr("stroke", "grey");
+        } )
+        .attr("stroke-width", 1)
+        .attr("stroke", "grey");
 
     if(dialog) alert("Relations created");
 
@@ -156,7 +156,7 @@ function drawElements () {
                 .style("opacity", 0);
         });
 
-        if(dialog) alert("Mouseover the circles to see more information");
+    if(dialog) alert("Mouseover the circles to see more information");
 
 }
 
