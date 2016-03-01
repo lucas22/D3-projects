@@ -65,6 +65,8 @@ function drawElements () {
             links = packages.imports(nodes, classes),
             splines = bundle(links);
 
+        // TODO: create nodes from 'users' and 'papers'
+        // TODO: create links from 'rel'
 
         var path = svgContainer.selectAll("path.link")
             .data(links)

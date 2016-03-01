@@ -1,0 +1,44 @@
+body {
+    width: 90%;
+    margin-left: 5%;
+}
+li {
+    margin: 0.2em 2em 0.2em 2em;
+}
+
+.users {
+    display: block;
+    float: left;
+    padding: 1em;
+    background-color: #eee;
+}
+
+.papers {
+    display: block;
+    float: right;
+    padding: 1em;
+    background-color: #eee;
+}
+
+.rel {
+    display: inline-block;
+}
+
+.UserCircle {
+
+}
+
+.PaperCircle {
+
+}
+
+div.tooltip {
+    position: absolute;
+    text-align: center;
+    padding: 2px;
+    font: 14px sans-serif;
+    background: lightsteelblue;
+    border: 0;
+    border-radius: 8px;
+    pointer-events: none;
+}
