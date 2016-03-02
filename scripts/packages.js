@@ -15,15 +15,12 @@
                         node.key = name.substring(i + 1);
                     }
                 }
-                console.log(node);
                 return node;
             }
 
             classes.forEach(function(d) {
                 find(d.name, d);
             });
-
-            console.log("MAP: " + map.values);
 
             return map[""];
         },
