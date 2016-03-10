@@ -9,8 +9,10 @@ nParticipants = 145
 nArticles = 183
 gdf_name = "bipartite_nodes_CSCW2013_URL_time.gdf"  # input file name
 json_name = "data"                                  # output file name (no .json nor .*)
-sample_mode = False  # To generate the whole data, change sample_mode to false
 rDel = None
+
+# sample mode settings (regular json only):
+sample_mode = False  # To generate the whole data, change sample_mode to false
 if (sample_mode) :
     pDel = 10
     aDel = nParticipants + 10
@@ -21,8 +23,8 @@ else :
     aDel = nParticipants + nArticles
     json_name += ".json"
 
-# GDF TO JSON FUNCTION #
-
+#####################################
+# reformat data for regular json file
 def regularjson (gdf_file) :
 
     content = gdf_file.readlines()
@@ -87,18 +89,26 @@ def regularjson (gdf_file) :
 
     return True
 
+#####################################
+# reformat data for hierarchycal plot
 def hierarchyjson (gdf_file) :
 
     content = gdf_file.readlines()
+
     json_data = {}
     elem_list = {}
+
     part = {}
     data = {}
     art = {}
     rel = {}
+
     part_list = []
     art_list = []
     rel_list = []
+
+    cluster_data = []
+
     saved = False
 
     json_file = open(json_name, "w")
@@ -118,7 +128,7 @@ def hierarchyjson (gdf_file) :
                 data['labelShort'] = elem_list[2]
                 data['url'] = elem_list[4]
                 data['date'] = elem_list[5]
-                part['name'] = "user."+elem_list[0][1:] + "." + elem_list[3]
+                part['name'] = "user."+elem_list[3] + "." + elem_list[0][1:]
                 part['data'] = data
                 part['imports'] = []
                 part_list.append(part)
@@ -133,7 +143,7 @@ def hierarchyjson (gdf_file) :
                 data['labelShort'] = elem_list[2]
                 data['url'] = elem_list[4]
                 data['date'] = elem_list[5]
-                art['name'] = "paper."+elem_list[0][1:] + "." + elem_list[3]
+                art['name'] = "paper."+elem_list[3] + "." + elem_list[0][1:]
                 art['data'] = data
                 art['imports'] = []
                 art_list.append(art)
@@ -146,9 +156,15 @@ def hierarchyjson (gdf_file) :
                 rel['relUser'] = elem_list[0][1:]
                 rel['relPaper'] = elem_list[1]
                 rel['relTime'] = elem_list[2]
-                # part_list where name = "user."+elem_list[0] + ".user"
-                currentUser = "user."+elem_list[0][1:]+".user"
-                currentPaper = "paper."+elem_list[1]+".talk"
+
+                # create related data for clustering
+                cluster_data.append( elem_list[0][1:] + " " + elem_list[1] + "\n" )
+
+                userType = "user."
+                paperType = "talk."
+                currentUser = "user." + userType + elem_list[0][1:]
+                currentPaper = "paper." + paperType + elem_list[1]
+
                 for e in part_list:
                     if (e['name'] == currentUser):
                         e['imports'].append(currentPaper)
@@ -157,23 +173,29 @@ def hierarchyjson (gdf_file) :
 
 
     json_file.write( json.dumps(part_list+art_list, json_file, indent=4) )
+
+    # save data for clustering
+    cluster_file = open("cluster", "w")
+    cluster_file.write("".join(cluster_data))
+
     #json_file.write(",\n\"rel\" : " + json.dumps(rel_list, json_file, indent=4) + "\n]")
 
     return True
 
 def main () :
 
-    # FILE POINTERS #
+    # gdf source file
     gdf_file = open(gdf_name, "r")
 
-    # JSON CREATION #
     if(sample_mode):
         print ("Note: Sample mode is on")
 
     #if( regularjson(gdf_file) ):
     #    print ("Written to: " + json_name + "\n")
 
-    if( hierarchyjson(gdf_file) ):
+    if( not sample_mode and hierarchyjson(gdf_file) ):
         print ("Written to: " + json_name + "\n")
+    else:
+        print ("For hierarchycal data, disable sample mode")
 
 main();

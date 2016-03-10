@@ -146,14 +146,14 @@ mainDraw = function() {
     }
 
     function mouseover(d) {
-        /*
+
         for (i in d.imports) {
             for (n in nodes) {
                 if( nodes[n].name === d.imports[i] ) {
                     //console.log(nodes[n]);
                 }
             }
-        }*/
+        }
 
         svg.selectAll("path.link.target-" + d.key)
             .classed("target", true)
@@ -165,7 +165,7 @@ mainDraw = function() {
     }
 
     function mouseout(d) {
-        /*
+
         svg.selectAll("path.link.source-" + d.key)
             .classed("source", false)
             .each(updateNodes("target", false));
@@ -173,7 +173,7 @@ mainDraw = function() {
         svg.selectAll("path.link.target-" + d.key)
             .classed("target", false)
             .each(updateNodes("source", false));
-            */
+
     }
 
     function updateNodes(name, value) {
