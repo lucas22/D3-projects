@@ -1,3 +1,4 @@
 # D3-projects
+## Visualization of a network using D3.js
 
-Interactive D3 visualization of a network.
+Undergraduate research project on data visualization of a network using D3.js library.
