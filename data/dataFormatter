@@ -1,31 +1,34 @@
 #!/usr/bin/env python
 import json
+import operator
 import tokenize
 import re
 import sys
+import os
 
-# PARAMETERS
+###############
+### PARAMETERS:
+
+# general:
 nParticipants = 145
 nArticles = 183
 gdf_name = "bipartite_nodes_CSCW2013_URL_time.gdf"  # input file name
-json_name = "data"                                  # JSON output file name (no .json nor .*)
-sim_name = "clustering/Similarities.txt"                       # Similarity output file name (for clustering)
-pref_name = "clustering/Preferences.txt"                       # Preferences output file name (for clustering)
-map_name = "clustering/map.txt"                                # Map file relating seq ids to original ones
+json_name = "data.json"                             # JSON output file name
+
+# file names
+simUsers_name = "clustering/users/SimUsers.txt"         # Similarity output file name
+simPapers_name = "clustering/papers/SimPapers.txt"
+prefUsers_name = "clustering/users/PrefUsers.txt"       # Preferences output file name
+prefPapers_name = "clustering/papers/PrefPapers.txt"
+mapUsers_name = "clustering/users/MapUsers.txt"         # Map file relating seq ids to original ones
+mapPapers_name = "clustering/papers/MapPapers.txt"
+
+# delimiters
 rDel = None
+pDel = nParticipants
+aDel = nParticipants + nArticles
 
-# sample mode settings (regular json only):
-sample_mode = False  # To generate the whole data, change sample_mode to false
-if (sample_mode) :
-    pDel = 10
-    aDel = nParticipants + 10
-    rDel = nParticipants + nArticles + 11
-    json_name += "Sample.json"
-else :
-    pDel = nParticipants
-    aDel = nParticipants + nArticles
-    json_name += ".json"
-
+# weighted link between a and b
 class Link:
     a = ""
     b = ""
@@ -35,165 +38,16 @@ class Link:
         self.b = b
         self.weight = weight
 
-#####################################
-# reformat data for regular json file
-def regularjson (gdf_file) :
+########################
+### AUXILIARY FUNCTIONS:
+def importData (gdf_file, write) :
 
     content = gdf_file.readlines()
-    json_data = elem_list = part = art = rel = {}
+    json_data, elem_list, part, data, art, rel = ({} for i in range(6))
+    part_list, art_list, rel_list, cluster_data = ([] for i in range(4))
 
-    part_list = []
-    art_list = []
-    rel_list = []
+    rDel = len(content)
 
-    json_file = open(json_name, "w")
-    try:
-        rDel
-    except NameError:
-        rDel = len(content)
-
-    for i,c in enumerate(content) :
-        if (i <= pDel and i > 0):
-            elem_list = c.rstrip("'\n").split("','");
-
-            if(len(elem_list) == 6):
-                part = {}
-                part['userId'] = elem_list[0]
-                part['userLabel'] = elem_list[1]
-                part['userLabelShort'] = elem_list[2]
-                part['userType'] = elem_list[3]
-                part['userUrl'] = elem_list[4]
-                part['userDate'] = elem_list[5]
-                part_list.append(part)
-
-        elif (i > nParticipants and i <= aDel) :
-            elem_list = c.rstrip("'\n").split("','");
-
-            if(len(elem_list) == 6):
-                art = {}
-                art['paperId'] = elem_list[0]
-                art['paperLabel'] = elem_list[1]
-                art['paperLabelShort'] = elem_list[2]
-                art['paperType'] = elem_list[3]
-                art['paperUrl'] = elem_list[4]
-                art['paperDate'] = elem_list[5]
-
-                art_list.append(art)
-
-        elif (i > nParticipants+nArticles+1 and i <= rDel) :
-            elem_list = c.rstrip("'\n").split("','");
-
-            if(len(elem_list) == 3):
-                rel = {}
-                rel['relUser'] = elem_list[0]
-                rel['relPaper'] = elem_list[1]
-                rel['relTime'] = elem_list[2]
-
-                rel_list.append(rel)
-
-    json_file.write("{\n\"users\" : " + json.dumps(part_list, json_file, indent=4))
-    json_file.write(",\n\"papers\" : " + json.dumps(art_list, json_file, indent=4))
-    json_file.write(",\n\"rel\" : " + json.dumps(rel_list, json_file, indent=4) + "\n}")
-
-    return True
-
-#####################################
-# reformat data for hierarchycal plot
-def hierarchyjson (gdf_file) :
-
-    content = gdf_file.readlines()
-
-    json_data = elem_list = part = art = rel = data = {}
-
-    part_list = []
-    art_list = []
-    rel_list = []
-    cluster_data = []
-
-    json_file = open(json_name, "w")
-    try:
-        rDel
-    except NameError:
-        rDel = len(content)
-
-    for i,c in enumerate(content) :
-        if (i <= pDel and i > 0):
-            elem_list = c.rstrip("'\n").rstrip("'").split("','");
-
-            if(len(elem_list) == 6):
-                part = {}
-                data = {}
-                data['label'] = elem_list[1]
-                data['labelShort'] = elem_list[2]
-                data['url'] = elem_list[4]
-                data['date'] = elem_list[5]
-                part['name'] = "user."+elem_list[3] + "." + elem_list[0][1:]
-                part['data'] = data
-                part['imports'] = []
-                part_list.append(part)
-
-        elif (i > nParticipants and i <= aDel) :
-            elem_list = c.rstrip("'\n").rstrip("'").split("','");
-
-            if(len(elem_list) == 6):
-                art = {}
-                data = {}
-                data['label'] = elem_list[1]
-                data['labelShort'] = elem_list[2]
-                data['url'] = elem_list[4]
-                data['date'] = elem_list[5]
-                art['name'] = "paper."+elem_list[3] + "." + elem_list[0][1:]
-                art['data'] = data
-                art['imports'] = []
-                art_list.append(art)
-
-        elif (i > nParticipants+nArticles+1 and i <= rDel) :
-            elem_list = c.rstrip("'\n").rstrip("'").split("','");
-
-            if(len(elem_list) == 3):
-                rel = {}
-                rel['relUser'] = elem_list[0][1:]
-                rel['relPaper'] = elem_list[1]
-                rel['relTime'] = elem_list[2]
-
-                # create related data for clustering
-                cluster_data.append( elem_list[0][1:] + " " + elem_list[1] + " 1\n" )
-
-                userType = "user."
-                paperType = "talk."
-                currentUser = "user." + userType + elem_list[0][1:]
-                currentPaper = "paper." + paperType + elem_list[1]
-
-                for e in part_list:
-                    if (e['name'] == currentUser):
-                        e['imports'].append(currentPaper)
-
-                rel_list.append(rel)
-
-    json_file.write( json.dumps(part_list+art_list, json_file, indent=4) )
-
-    return True
-
-############################################
-# generate similarity (for clustering input)
-
-def similarity (gdf_file) :
-
-    content = gdf_file.readlines()
-
-    json_data = elem_list = part = data = art = rel = {}
-
-    part_list = []
-    art_list = []
-    rel_list = []
-    cluster_data = []
-
-    try:
-        rDel
-    except NameError:
-        rDel = len(content)
-
-    ### RETRIEVAL:
     for i,c in enumerate(content):
         if (i <= pDel and i > 0):
             elem_list = c.rstrip("'\n").rstrip("'").split("','");
@@ -234,145 +88,165 @@ def similarity (gdf_file) :
                 rel['relPaper'] = elem_list[1]
                 rel['relTime'] = elem_list[2]
 
-                # create related data for clustering
-                cluster_data.append( elem_list[0][1:] + " " + elem_list[1] + " 1\n" )
-
                 userType = "user."
                 paperType = "talk."
                 currentUser = "user." + userType + elem_list[0][1:]
                 currentPaper = "paper." + paperType + elem_list[1]
 
-                # create entries to 'imports'
+                # create entries to 'imports' in users and papers
                 for e in part_list:
                     if (e['name'] == currentUser):
                         e['imports'].append(currentPaper)
+                for e in art_list:
+                    if (e['name'] == currentPaper):
+                        e['imports'].append(currentUser)
 
                 rel_list.append(rel)
 
+    if(write):
+        json_file = open(json_name, "w")
+        json_file.write( json.dumps(part_list+art_list, json_file, indent=4) )
 
-    ### CLUSTERING:
-    ###############
+    return (part_list, art_list, rel_list)
 
-    ## Mapping
-    # for each user id, map a new sequential id
-    newids = {}
-    pref = ""
-    mapping = ""
-    nUsers = len(part_list)
-
-    for i,u in enumerate(part_list):
+def mapping (id_dict):
+    new_id_dict = {}
+    mapping_string = ""
+    for i,u in enumerate(id_dict):
         oldid = u['name'].split('.')[-1]
-        newids[oldid] = i+1
-        mapping += oldid + ' ' + str(newids[oldid]) + '\n'
-    for i,p in enumerate(art_list):
-        oldid = p['name'].split('.')[-1]
-        newids[oldid] = i+nUsers+1
-        mapping += oldid + ' ' + str(newids[oldid]) + '\n'
+        new_id_dict[oldid] = i+1
+        mapping_string += oldid + ' ' + str(new_id_dict[oldid]) + '\n'
 
-    def retrieveKey(value):
-        value = int(value)
-        for k, v in newids.iteritems():
-            if v == value:
-                return k
-        #return newids.keys()[newids.values().index(value)]
+    return (new_id_dict, mapping_string)
 
-    #==========
-    ## Counting
+# given a dictionary and a value, retrieve first key (k)
+def retrieveKey (dictio, value):
+    value = int(value)
+    for k, v in dictio.iteritems():
+        if v == value:
+            return k
+    return None
 
-    # count how many users each SINGLE paper has
-    singles = {}
-    for r in rel_list:
-        key = str(r['relUser'])
-        if(not (key in singles)):
-            singles[key] = 1
+# returns a list of [item, count] given a dictionary and a field
+def counting (dictio, field, printFirst=0):
+    unsortedCount = {}
+    for r in dictio:
+        key = str(r[field])
+        if(not (key in unsortedCount)):
+            unsortedCount[key] = 1
         else:
-            singles[key] = singles[key]+1
+            unsortedCount[key] += 1
+    count = sorted(unsortedCount.items(), key=operator.itemgetter(1), reverse=True)
+    for c in range(0, printFirst):
+        print('\tItem ' + count[c][0] + ' has ' + str(count[c][1]) + ' objects connected to ')
+    print("")
 
-    singles.sort(key=lambda x: x.val(), reverse=True)
-    print(singles)
+    return count
 
-    # count how many papers each SINGLE user has
-
-    #---------------
-    # for every PAIR of users, count how many papers they share
-    sim = ""
+# for every pair within lis elements, count how many items in 'importfield' they share
+def countPairs (lis, lookup, namefield='name', importfield='imports', printFirst=0):
+    sim = pref = ""
+    size = len(lis)
     pairs = []
-    for ui1 in range(0, nUsers):
-        for ui2 in range(ui1+1, nUsers):
-            if(ui1 is not ui2):
-                u1 = part_list[ui1]
-                u2 = part_list[ui2]
-                n1 = str( newids[ u1['name'].split('.')[-1] ] )
-                n2 = str( newids[ u2['name'].split('.')[-1] ] )
+    for ui1 in range(0, size):
+        for ui2 in range(ui1+1, size):
+            i1 = lis[ui1]
+            i2 = lis[ui2]
+            n1 = str( lookup[ i1[namefield].split('.')[-1] ] )
+            n2 = str( lookup[ i2[namefield].split('.')[-1] ] )
 
-                inter = set(u1['imports']).intersection(u2['imports'])
-                size = len(inter)
-                if(size != 0) :
-                    pairs.append(Link(n1,n2,size))
-                    sim += n1 + ' ' + n2 + ' ' + str(size*-1) + '\n'
-                pref += "1\n"
-
-    # for every PAIR of papers, count how many users they share
-    for pi1 in range(0, len(art_list)):
-        for pi2 in range(pi1+1, nUsers):
-            if(pi1 is not pi2):
-                p1 = part_list[pi1]
-                p2 = part_list[pi2]
-                n1 = str( newids[ p1['name'].split('.')[-1] ] + nUsers )
-                n2 = str( newids[ p2['name'].split('.')[-1] ] + nUsers )
-
-                inter = set(p1['imports']).intersection(p2['imports'])
-                size = len(inter)
-                if(size != 0) :
-                    pairs.append(Link(n1,n2,size))
-                    sim += n1 + ' ' + n2 + ' ' + str(size*-1) + '\n'
-                pref += "1\n"
-
-    ## Sorting
-    # sort links based on weight:
+            inter = set(i1[importfield]).intersection(i2[importfield])
+            sizeInter = len(inter)
+            if(size != 0) :
+                pairs.append( Link(a=n1, b=n2, weight=sizeInter) )
+                sim += n1 + ' ' + n2 + ' ' + str(sizeInter*-1) + '\n'
+            pref += "-1\n"
+    # sorts the pairs list
     pairs.sort(key=lambda x: x.weight, reverse=True)
 
-    print("Top 20 links user-user and paper-paper:")
-    for c in range (0,20):
+    for c in range (0,printFirst):
         if (pairs[c].weight):
-            print('\t'+retrieveKey(pairs[c].a)+' '+retrieveKey(pairs[c].b)+' '+str(pairs[c].weight))
+            print('\t'+str(c+1)+': '+retrieveKey(lookup, pairs[c].a)+' and '+retrieveKey(lookup, pairs[c].b)+' have '+str(pairs[c].weight) + ' items in common')
+    print("")
 
-    #
+    return (pairs, sim, pref)
 
-    ## Writing
-    map_file = open(map_name, "w")
-    map_file.write(mapping)
+def writeToFile (output, file_name):
+    file = open(file_name, "w")
+    file.write(output)
+    file.close();
 
-    pref_file = open(pref_name, "w")
-    pref_file.write(pref)
+def getClusters (cluster_file, id_list):
+    ids = cluster_file.readlines()
+    cluster_file.close()
+    cluster = {}
+    for i,e in enumerate(ids):
+        newid = retrieveKey(id_list, i+1)
+        cluster.setdefault(e[:-2], []).append(newid)
 
-    sim_file = open(sim_name, "w")
-    sim_file.write(sim)
+    return cluster
+
+def readIdxFiles ():
+    idx_file = None
+    while (not idx_file):
+        print("Paste the 'idx.txt' from the affinity runs in users/ and papers/ and press enter")
+        raw_input()
+        try:
+            idxUsers_file = open("users/idx.txt","r")
+            idxPapers_file = open("papers/idx.txt","r")
+        except:
+            continue
+        return (idxUsers_file, idxPapers_file)
+
+####################
+### EXPLORE THE DATA
+def similarity (gdf_file) :
+
+    part_list, art_list, rel_list = importData (gdf_file, write=False)
+
+    # Mapping
+    newUid, mapUsers = mapping (part_list)
+    newPid, mapPapers = mapping (art_list)
+
+    # Count singles
+    uSingles = counting (rel_list, 'relUser', printFirst=10)
+    pSingles = counting (rel_list, 'relPaper', printFirst=10)
+
+    # Count pairs
+    uPairs, simUsers, prefUsers = countPairs (lis=part_list, lookup=newUid, printFirst=10)
+    pPairs, simPapers, prefPapers = countPairs (lis=art_list, lookup=newPid, printFirst=10)
+
+    # Write txt files
+    writeToFile (mapUsers,   mapUsers_name)
+    writeToFile (mapPapers,  mapPapers_name)
+    writeToFile (prefUsers,  prefUsers_name)
+    writeToFile (prefPapers, prefPapers_name)
+    writeToFile (simUsers,   simUsers_name)
+    writeToFile (simPapers,  simPapers_name)
+
+    # Create zip files for affinity program
+    os.chdir("clustering/users")
+    os.system("rm users.zip; zip users.zip -r . -i SimUsers.txt")
+    os.chdir("../papers")
+    os.system("rm papers.zip; zip papers.zip -r . -i SimPapers.txt")
+    os.chdir("../")
+
+    # Read idx.txt and get clusters
+    idxUsers_file, idxPapers_file = readIdxFiles()
+    userClusters = getClusters(cluster_file=idxUsers_file, id_list=newUid)
+    paperClusters = getClusters(cluster_file=idxPapers_file, id_list=newPid)
+
+    print("# paper clusters: "+str(len(paperClusters))+'\n# user clusters: '+str(len(userClusters))+'\n')
 
     return True
 
-
+#########
+### MAIN:
 def main () :
 
-    # gdf source file
     gdf_file = open(gdf_name, "r")
 
-    if(sample_mode):
-        print ("Note: Sample mode is on")
-
     if(similarity(gdf_file)) :
-        print ("Written to: \n\t" + sim_name + "\n\t" + pref_name + "\n\t" + map_name + "\n")
-
-    '''
-    if( regularjson(gdf_file) ):
-        print ("Written to: " + json_name + "\n")
-    '''
-
-    '''
-    if( not sample_mode and hierarchyjson(gdf_file) ):
-        print ("Written to: " + json_name + "\n")
-    else:
-        print ("For hierarchycal data, disable sample mode")
-    '''
+        print ("Similarity analysis complete.")
 
 main()
