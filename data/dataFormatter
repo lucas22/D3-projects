@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from array import array
 import json
 import operator
 import tokenize
@@ -22,6 +23,8 @@ prefUsers_name = "clustering/users/PrefUsers.txt"       # Preferences output fil
 prefPapers_name = "clustering/papers/PrefPapers.txt"
 mapUsers_name = "clustering/users/MapUsers.txt"         # Map file relating seq ids to original ones
 mapPapers_name = "clustering/papers/MapPapers.txt"
+binUsers_name = "clustering/users/affinity.bin"			# Binary file to affinity propagation
+binPapers_name = "clustering/papers/affinity.bin"
 
 # delimiters
 rDel = None
@@ -40,6 +43,8 @@ class Link:
 
 ########################
 ### AUXILIARY FUNCTIONS:
+
+# import data from .gdf
 def importData (gdf_file, write) :
 
     content = gdf_file.readlines()
@@ -128,7 +133,7 @@ def retrieveKey (dictio, value):
     return None
 
 # returns a list of [item, count] given a dictionary and a field
-def counting (dictio, field, printFirst=0):
+def counting (dictio, field, pTop=0):
     unsortedCount = {}
     for r in dictio:
         key = str(r[field])
@@ -137,44 +142,48 @@ def counting (dictio, field, printFirst=0):
         else:
             unsortedCount[key] += 1
     count = sorted(unsortedCount.items(), key=operator.itemgetter(1), reverse=True)
-    for c in range(0, printFirst):
+    for c in range(0, pTop):
         print('\tItem ' + count[c][0] + ' has ' + str(count[c][1]) + ' objects connected to ')
     print("")
 
     return count
 
 # for every pair within lis elements, count how many items in 'importfield' they share
-def countPairs (lis, lookup, namefield='name', importfield='imports', printFirst=0):
+def countPairs (lis, lookup, namefield='name', importfield='imports', pTop=0):
     sim = pref = ""
     size = len(lis)
     pairs = []
+    aff = [[0 for x in range(size)] for x in range(size)]
     for ui1 in range(0, size):
         for ui2 in range(ui1+1, size):
             i1 = lis[ui1]
             i2 = lis[ui2]
-            n1 = str( lookup[ i1[namefield].split('.')[-1] ] )
-            n2 = str( lookup[ i2[namefield].split('.')[-1] ] )
+            n1 = lookup[ i1[namefield].split('.')[-1] ]
+            n2 = lookup[ i2[namefield].split('.')[-1] ]
 
             inter = set(i1[importfield]).intersection(i2[importfield])
             sizeInter = len(inter)
             if(size != 0) :
-                pairs.append( Link(a=n1, b=n2, weight=sizeInter) )
-                sim += n1 + ' ' + n2 + ' ' + str(sizeInter*-1) + '\n'
+                pairs.append( Link(a=str(n1), b=str(n2), weight=sizeInter) )
+                sim += str(n1) + ' ' + str(n2) + ' ' + str(sizeInter*-1) + '\n'
+                aff[n1-1][n2-1] = -1*sizeInter
+                aff[n2-1][n1-1] = -1*sizeInter
+                aff[n1-1][n1-1] = -1
+                aff[n2-1][n2-1] = -1
             pref += "-1\n"
     # sorts the pairs list
     pairs.sort(key=lambda x: x.weight, reverse=True)
 
-    for c in range (0,printFirst):
+    for c in range (0,pTop):
         if (pairs[c].weight):
             print('\t'+str(c+1)+': '+retrieveKey(lookup, pairs[c].a)+' and '+retrieveKey(lookup, pairs[c].b)+' have '+str(pairs[c].weight) + ' items in common')
     print("")
 
-    return (pairs, sim, pref)
+    return (pairs, sim, pref, aff)
 
 def writeToFile (output, file_name):
-    file = open(file_name, "w")
-    file.write(output)
-    file.close();
+    with open(file_name, "w") as file:
+	    file.write(output)
 
 def getClusters (cluster_file, id_list):
     ids = cluster_file.readlines()
@@ -198,23 +207,46 @@ def readIdxFiles ():
             continue
         return (idxUsers_file, idxPapers_file)
 
+def writeToBinFile (values, file_name):
+	size = len(values[0])
+	values = sum(values, [])
+	#values = map(lambda x: x*-1, values)
+	values.insert(0,size)
+	print(len(values))
+	def splitNumber (num):		# in case num is larger than 1 byte (0-255)
+		num = map(int, str(num))
+		lst = []
+		while num > 0:
+		    lst.append(num & 0xFF)
+		    num >>= 8
+		return lst[::-1]
+
+	with open(file_name, 'wb') as f:
+		values = array('d', values)
+		values.tofile(f)
+
+	for i in range(0,10):
+		sys.stdout.write(str(values[i])+' ')
+	print("")
+
+
 ####################
 ### EXPLORE THE DATA
 def similarity (gdf_file) :
 
-    part_list, art_list, rel_list = importData (gdf_file, write=False)
+    part_list, art_list, rel_list = importData (gdf_file, write=True)
 
     # Mapping
     newUid, mapUsers = mapping (part_list)
     newPid, mapPapers = mapping (art_list)
 
     # Count singles
-    uSingles = counting (rel_list, 'relUser', printFirst=10)
-    pSingles = counting (rel_list, 'relPaper', printFirst=10)
+    uSingles = counting (rel_list, 'relUser', pTop=10)
+    pSingles = counting (rel_list, 'relPaper', pTop=10)
 
     # Count pairs
-    uPairs, simUsers, prefUsers = countPairs (lis=part_list, lookup=newUid, printFirst=10)
-    pPairs, simPapers, prefPapers = countPairs (lis=art_list, lookup=newPid, printFirst=10)
+    uPairs,simUsers,prefUsers,affinityUsers = countPairs (lis=part_list,lookup=newUid, pTop=10)
+    pPairs,simPapers,prefPapers,affinityPapers = countPairs (lis=art_list,lookup=newPid, pTop=10)
 
     # Write txt files
     writeToFile (mapUsers,   mapUsers_name)
@@ -223,6 +255,10 @@ def similarity (gdf_file) :
     writeToFile (prefPapers, prefPapers_name)
     writeToFile (simUsers,   simUsers_name)
     writeToFile (simPapers,  simPapers_name)
+
+	# Write binary files
+    writeToBinFile (affinityUsers,  binUsers_name)
+    writeToBinFile (affinityPapers, binPapers_name)
 
     # Create zip files for affinity program
     os.chdir("clustering/users")
@@ -236,7 +272,7 @@ def similarity (gdf_file) :
     userClusters = getClusters(cluster_file=idxUsers_file, id_list=newUid)
     paperClusters = getClusters(cluster_file=idxPapers_file, id_list=newPid)
 
-    print("# paper clusters: "+str(len(paperClusters))+'\n# user clusters: '+str(len(userClusters))+'\n')
+    print("# paper clusters: "+str(paperClusters)+'\n\n# user clusters: '+str(userClusters)+'\n')
 
     return True
 
