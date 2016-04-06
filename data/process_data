@@ -124,6 +124,7 @@ def importData (gdf_file, write) :
 
     return (part_list, art_list, rel_list)
 
+# maps any ID dictionary into a dictionary with sequential keys starting from 1
 def mapping (id_dict):
     new_id_dict = {}
     mapping_string = ""
@@ -134,7 +135,7 @@ def mapping (id_dict):
 
     return (new_id_dict, mapping_string)
 
-# given a dictionary and a value, retrieve first key (k)
+# given a dictionary and a value, retrieves first key (k)
 def retrieveKey (dictio, value):
     value = int(value)
     for k, v in dictio.iteritems():
@@ -158,7 +159,7 @@ def counting (dictio, field, pTop=0):
 
     return count
 
-# for every pair within lis elements, count how many items in 'importfield' they share
+# for every pair within lis elements, counts how many items in 'importfield' they share
 def countPairs (lis, lookup, namefield='name', importfield='imports', pTop=0):
     sim = pref = ""
     size = len(lis)
@@ -196,14 +197,14 @@ def writeToFile (output, file_name):
     with open(file_name, "w") as file:
 	    file.write(output)
 
-# form a file with clustered values and a dictionary, outputs the "translated" clusters using this dictionary
+# form a file with clustered values and a dictionary, outputs the "translated" clusters using this dictionary. Note: e[:-1] gets rid of '\n' character at the end
 def convertClusters (cluster_file, id_dict):
     ids = cluster_file.readlines()
     cluster_file.close()
     newCluster = {}
     for i,e in enumerate(ids):
         newid = retrieveKey(id_dict, i+1)
-        newCluster.setdefault(retrieveKey(id_dict, e[:-2]), []).append(newid)
+        newCluster.setdefault(retrieveKey(id_dict, e[:-1]), []).append(newid)
     return newCluster
 
 # opens index files (used here to read clustering program output)
@@ -223,7 +224,6 @@ def writeToBinFile (values, file_name):
 	size = len(values[0])
 	values = sum(values, [])
 	values.insert(0,size)
-	print(len(values))
 	def splitNumber (num):		# in case num is larger than 1 byte (0-255)
 		num = map(int, str(num))
 		lst = []
@@ -236,6 +236,7 @@ def writeToBinFile (values, file_name):
 		values = array('f', values)
 		values.tofile(f)
 
+	sys.stdout.write("First 10#: ")
 	for i in range(0,10):
 		sys.stdout.write(str(values[i])+' ')
 	print("")
