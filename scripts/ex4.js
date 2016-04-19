@@ -2,7 +2,9 @@
  * Created by Lucas Parzianello on 2/27/16.
  */
 mainDraw = function() {
-    var w = 1280,
+    var importsThreshold = $("#uThres").val();
+
+    var w = 800,
         h = 800,
         rx = w / 2,
         ry = h / 2,
@@ -30,18 +32,18 @@ mainDraw = function() {
             return d.x / 180 * Math.PI;
         });
 
-    // Chrome 15 bug: <http://code.google.com/p/chromium/issues/detail?id=98951>
-    var div = d3.select("body").insert("div", "h2")
-        .style("top", "-80px")
-        .style("left", "-160px")
+    d3.select(".Views").remove();
+    var div = d3.select("body").insert("div").attr("class", "Views")
+        .style("top", 0)
+        .style("left", 0)
         .style("width", w + "px")
-        .style("height", w + "px")
+        .style("height", h + "px")
         .style("position", "absolute")
         .style("-webkit-backface-visibility", "hidden");
 
     var svg = div.append("svg:svg")
         .attr("width", w)
-        .attr("height", w)
+        .attr("height", h)
         .append("svg:g")
         .attr("transform", "translate(" + rx + "," + ry + ")");
 
@@ -51,7 +53,55 @@ mainDraw = function() {
         .on("mousedown", mousedown);
 
     d3.json("data/data.json", function (classes) {
-        nodes = cluster.nodes(packages.root(classes));
+        var topUsers = [];
+        var bossDict = {};
+
+        // add elements that are cluster names (bosses)
+        for (c in classes) {
+            var cat = classes[c].name.split(".")[0];
+            var cl = classes[c].name.split(".")[1];
+            var type = classes[c].name.split(".")[2];
+            var boss = [cat, cl, type, cl].join(".");
+
+            if (!bossDict[boss]) {
+                for (c in classes) {
+                    if (classes[c].name == boss) {
+                        bossDict[boss] = classes[c];
+                        topUsers.push(bossDict[boss]);
+                        break;
+                    }
+                }
+            }
+        }
+        // add users that are within the threshold
+        for (c in classes) {
+            var cat = classes[c].name.split(".")[0];
+            if (cat == "user" && classes[c].imports.length >= importsThreshold) {
+                topUsers.push(classes[c]);
+            }
+        }
+        var nUsers = topUsers.length;
+        for (u in topUsers){
+            console.log(topUsers[u]);
+        }
+        console.log(topUsers.length);
+        // add for each paper in imports to topUsers
+        var topUsers2 = topUsers;
+        for (t in topUsers) {
+            for (i in topUsers[t].imports) {
+                for (c in classes) {
+                    if (/*topUsers.indexOf(classes[c])==-1 &&*/ classes[c].name == topUsers[t].imports[i]) {
+                        newItem = classes[c];
+                        newItem.imports = []; // remove imports of papers (no extra users)
+                        topUsers2.push(newItem);
+                    }
+                }
+            }
+        }
+
+        var nPapers = topUsers2.length - nUsers;
+
+        nodes = cluster.nodes(packages.root(topUsers2));
         links = packages.imports(nodes);
         splines = bundle(links);
 
@@ -94,28 +144,45 @@ mainDraw = function() {
             .on("mouseover", mouseover)
             .on("mouseout", mouseout);
 
-        d3.select("input[type=range]").on("change", function () {
+        stats = {
+            nUsers: nUsers,
+            nPapers: nPapers
+        };
+        drawStats(stats);
+
+        // Controls interactivity
+        d3.select("input[id=tension]").on("input", tensionUpdate);
+        d3.select("input[id=uThres]").on("change", uThresUpdate);
+
+        function tensionUpdate() {
+            $('#tensionL').text(" "+$(this).val());
             line.tension(this.value / 100);
             path.attr("d", function (d, i) {
                 return line(splines[i]);
             });
-        });
+        }
+        function uThresUpdate() {
+            $('#uThresL').text($(this).val());
+            mainDraw();
+        }
+        function drawStats(stats) {
+            var msg = "Number of users: " + stats.nUsers + "<br>Number of papers: "+ stats.nPapers;
+            $('#stats_text').append(msg);
+        }
     });
 
     d3.select(window)
         .on("mousemove", mousemove)
         .on("mouseup", mouseup);
 
-
+    // SVG interactivity:
     function mouse(e) {
         return [e.pageX - rx, e.pageY - ry];
     }
-
     function mousedown() {
         m0 = mouse(d3.event);
         d3.event.preventDefault();
     }
-
     function mousemove() {
         if (m0) {
             var m1 = mouse(d3.event),
@@ -123,7 +190,6 @@ mainDraw = function() {
             div.style("-webkit-transform", "translateY(" + (ry - rx) + "px)rotateZ(" + dm + "deg)translateY(" + (rx - ry) + "px)");
         }
     }
-
     function mouseup() {
         if (m0) {
             var m1 = mouse(d3.event),
@@ -144,17 +210,7 @@ mainDraw = function() {
                 .attr("transform", function(d) { return (d.x + rotate) % 360 < 180 ? null : "rotate(180)"; });
         }
     }
-
     function mouseover(d) {
-
-        for (i in d.imports) {
-            for (n in nodes) {
-                if( nodes[n].name === d.imports[i] ) {
-                    //console.log(nodes[n]);
-                }
-            }
-        }
-
         svg.selectAll("path.link.target-" + d.key)
             .classed("target", true)
             .each(updateNodes("source", true));
@@ -163,7 +219,6 @@ mainDraw = function() {
             .classed("source", true)
             .each(updateNodes("target", true));
     }
-
     function mouseout(d) {
 
         svg.selectAll("path.link.source-" + d.key)
@@ -175,18 +230,15 @@ mainDraw = function() {
             .each(updateNodes("source", false));
 
     }
-
     function updateNodes(name, value) {
         return function(d) {
             if (value) this.parentNode.appendChild(this);
             svg.select("#node-" + d[name].key).classed(name, value);
         };
     }
-
     function cross(a, b) {
         return a[0] * b[1] - a[1] * b[0];
     }
-
     function dot(a, b) {
         return a[0] * b[0] + a[1] * b[1];
     }

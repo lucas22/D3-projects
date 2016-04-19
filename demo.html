@@ -8,16 +8,8 @@
     <script src="scripts/d3/d3.v3.min.js"></script>
     <script src="scripts/jquery-1.12.0.min.js" charset="utf-8"></script>
 
-    <script src="scripts/packages.js" type="text/javascript" charset="utf-8"></script>
-
-    <!-- <script src="scripts/ex2.js" type="text/javascript" charset="utf-8"></script> -->
-    <!-- <script src="scripts/ex3.js" type="text/javascript" charset="utf-8"></script> -->
-    <script src="scripts/ex4.js" type="text/javascript" charset="utf-8"></script>
-
     <script>
         $("body").ready(function() {
-            //dataListD3();
-            //retrieveAndDraw();
             mainDraw();
         });
     </script>
@@ -27,11 +19,19 @@
 </head>
 
 <body>
-    <h2>
-        Users and Papers<br>
-        hierarchical edge bundling
-    </h2>
-    <div style="position:absolute;bottom:0;font-size:18px;">tension: <input style="position:relative;top:3px;" type="range" min="0" max="100" value="85"></div>
+    <div class="Controls">
+        <h2>Hierarchical edge bundling<br>of a conference network</h2>
+        <ul>
+            <li><label for="tension">Tension:&nbsp&nbsp</label><input id="tension" type="range" min="0" max="100" value="85"><label class='dLabel' id='tensionL' for="tension">85</label></li>
+            <li><label for="uThres">Users threshold:&nbsp&nbsp</label><input id='uThres' type="range" min="0" max="50" value="25" step="1"><label class='dLabel' id='uThresL' for="uThres">25</label></li>
+        </ul>
+        <div id="stats">
+            <h2>Statistics</h2>
+            <p id="stats_text"></p>
+        </div>
+    </div>
+    <script src="scripts/packages.js" type="text/javascript" charset="utf-8"></script>
+    <script src="scripts/ex4.js" type="text/javascript" charset="utf-8"></script>
     <script type="text/javascript" src="scripts/d3/d3.js"></script>
     <script type="text/javascript" src="scripts/d3/d3.layout.js"></script>
     <script type="text/javascript" src="scripts/packages.js"></script>

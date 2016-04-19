@@ -250,6 +250,29 @@ def kmeansClustering (binary_name, number_of_clusters):
         return False
     return True
 
+def updateJSON (allClusters):
+    def getKey(value):
+        for k, v in allClusters.iteritems():
+            for n in v:
+                if n == value:
+                    return k
+        return None
+
+    json_file = open(json_name, "r+")
+    json_obj = json.loads(json_file.read())
+    for o in json_obj:
+        imports = []
+        n = o["name"].split('.')
+        o["name"] = n[0]+"."+getKey(n[-1])+"."+n[1]+"."+n[2]
+        for i in o['imports']:
+            cluster = getKey(i.split('.')[-1])
+            line = i.split('.')
+            imports.append(line[0]+"."+cluster+"."+line[1]+"."+line[2])
+        o['imports'] = imports
+    json_file.seek(0)
+    json_file.write( json.dumps(json_obj, json_file, indent=4) )
+    json_file.truncate()
+
 ####################
 ### EXPLORE THE DATA
 def similarity (gdf_file) :
@@ -289,9 +312,12 @@ def similarity (gdf_file) :
     userClusters = convertClusters(cluster_file=idxUsers_file, id_dict=newUid)
     paperClusters = convertClusters(cluster_file=idxPapers_file, id_dict=newPid)
 
-    #print("\n# paper clusters: "+str(paperClusters)+'\n# user clusters: '+str(userClusters)+'\n')
-
     print("\n# paper clusters: "+str(len(paperClusters))+'\n# user clusters: '+str(len(userClusters))+'\n')
+
+    allClusters = {}
+    allClusters.update(userClusters)
+    allClusters.update(paperClusters)
+    updateJSON(allClusters)
 
     return True
 
