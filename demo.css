@@ -1,6 +1,7 @@
 /* Structure */
 body {
     font: 300 36px "Helvetica Neue", "Ubuntu", "Courier New", "sans-serif";
+    display: block;
 }
 .Controls {
     font-size:18px;

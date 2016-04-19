@@ -2,7 +2,6 @@
  * Created by Lucas Parzianello on 2/27/16.
  */
 mainDraw = function() {
-    var importsThreshold = $("#uThres").val();
 
     var w = 800,
         h = 800,
@@ -13,6 +12,7 @@ mainDraw = function() {
 
     var splines = [];
     var nodes, links;
+    var path = [];
 
     var cluster = d3.layout.cluster()
         .size([360, ry - 120])
@@ -53,106 +53,102 @@ mainDraw = function() {
         .on("mousedown", mousedown);
 
     d3.json("data/data.json", function (classes) {
-        var topUsers = [];
-        var bossDict = {};
+        var tUsers=0, tPapers=0;
 
-        // add elements that are cluster names (bosses)
-        for (c in classes) {
-            var cat = classes[c].name.split(".")[0];
-            var cl = classes[c].name.split(".")[1];
-            var type = classes[c].name.split(".")[2];
-            var boss = [cat, cl, type, cl].join(".");
+        for (c in classes){
+            if (classes[c].name.split(".")[0] == "user") tUsers++;
+            else if (classes[c].name.split(".")[0] == "paper") tPapers++;
+        }
 
-            if (!bossDict[boss]) {
-                for (c in classes) {
-                    if (classes[c].name == boss) {
-                        bossDict[boss] = classes[c];
-                        topUsers.push(bossDict[boss]);
-                        break;
+        var rebuildData = function() {
+            var importsThreshold = $("#uThres").val();
+            var newData = [];
+            var existing = {};
+
+            // add users that are within the threshold
+            for (c in classes) {
+                var cat = classes[c].name.split(".")[0];
+                if (cat == "user" && !(classes[c].name in existing) && classes[c].imports.length >= importsThreshold) {
+                    newData.push(classes[c]);
+                    existing[classes[c].name] = true;
+                }
+            }
+            var nUsers = newData.length;
+
+            // avoid inconsistency by adding each paper in imports to newData
+            for (t in newData) {
+                for (i in newData[t].imports) {
+                    for (c in classes) {
+                        if (!(classes[c].name in existing) && classes[c].name == newData[t].imports[i]) {
+                            newItem = classes[c];
+                            newItem.imports = []; // remove imports of papers (no extra users)
+                            newData.push(newItem);
+                            existing[classes[c].name] = true;
+                        }
                     }
                 }
             }
-        }
-        // add users that are within the threshold
-        for (c in classes) {
-            var cat = classes[c].name.split(".")[0];
-            if (cat == "user" && classes[c].imports.length >= importsThreshold) {
-                topUsers.push(classes[c]);
-            }
-        }
-        var nUsers = topUsers.length;
-        for (u in topUsers){
-            console.log(topUsers[u]);
-        }
-        console.log(topUsers.length);
-        // add for each paper in imports to topUsers
-        var topUsers2 = topUsers;
-        for (t in topUsers) {
-            for (i in topUsers[t].imports) {
-                for (c in classes) {
-                    if (/*topUsers.indexOf(classes[c])==-1 &&*/ classes[c].name == topUsers[t].imports[i]) {
-                        newItem = classes[c];
-                        newItem.imports = []; // remove imports of papers (no extra users)
-                        topUsers2.push(newItem);
-                    }
-                }
-            }
-        }
+            var nPapers = newData.length - nUsers;
 
-        var nPapers = topUsers2.length - nUsers;
+            nodes = cluster.nodes(packages.root(newData));
+            links = packages.imports(nodes);
+            splines = bundle(links);
 
-        nodes = cluster.nodes(packages.root(topUsers2));
-        links = packages.imports(nodes);
-        splines = bundle(links);
+            svg.selectAll("path.link").remove();
+            svg.selectAll("g.node").remove();
+            path = svg.selectAll("path.link")
+                .data(links)
+                .enter().append("svg:path")
+                .attr("class", function (d) {
+                    return "link source-" + d.source.key + " target-" + d.target.key;
+                })
+                .attr("d", function (d, i) {
+                    return line(splines[i]);
+                });
 
-        var path = svg.selectAll("path.link")
-            .data(links)
-            .enter().append("svg:path")
-            .attr("class", function (d) {
-                return "link source-" + d.source.key + " target-" + d.target.key;
-            })
-            .attr("d", function (d, i) {
-                return line(splines[i]);
-            });
+            svg.selectAll("g.node")
+                .data(nodes.filter(function (n) {
+                    return !n.children;
+                }))
+                .enter().append("svg:g")
+                .attr("class", "node")
+                .attr("id", function (d) {
+                    return "node-" + d.key;
+                })
+                .attr("transform", function (d) {
+                    return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")";
+                })
+                .append("svg:text")
+                .attr("dx", function (d) {
+                    return d.x < 180 ? 8 : -8;
+                })
+                .attr("dy", ".31em")
+                .attr("text-anchor", function (d) {
+                    return d.x < 180 ? "start" : "end";
+                })
+                .attr("transform", function (d) {
+                    return d.x < 180 ? null : "rotate(180)";
+                })
+                .text(function (d) {
+                    return d.data.labelShort;
+                })
+                .on("mouseover", mouseover)
+                .on("mouseout", mouseout);
 
-        svg.selectAll("g.node")
-            .data(nodes.filter(function (n) {
-                return !n.children;
-            }))
-            .enter().append("svg:g")
-            .attr("class", "node")
-            .attr("id", function (d) {
-                return "node-" + d.key;
-            })
-            .attr("transform", function (d) {
-                return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")";
-            })
-            .append("svg:text")
-            .attr("dx", function (d) {
-                return d.x < 180 ? 8 : -8;
-            })
-            .attr("dy", ".31em")
-            .attr("text-anchor", function (d) {
-                return d.x < 180 ? "start" : "end";
-            })
-            .attr("transform", function (d) {
-                return d.x < 180 ? null : "rotate(180)";
-            })
-            .text(function (d) {
-                return d.data.labelShort;
-            })
-            .on("mouseover", mouseover)
-            .on("mouseout", mouseout);
-
-        stats = {
-            nUsers: nUsers,
-            nPapers: nPapers
+            stats = {
+                tUsers: tUsers,
+                tPapers: tPapers,
+                nUsers: nUsers,
+                nPapers: nPapers
+            };
+            drawStats(stats);
         };
-        drawStats(stats);
+
+        rebuildData();
 
         // Controls interactivity
         d3.select("input[id=tension]").on("input", tensionUpdate);
-        d3.select("input[id=uThres]").on("change", uThresUpdate);
+        d3.select("input[id=uThres]").on("input", uThresUpdate);
 
         function tensionUpdate() {
             $('#tensionL').text(" "+$(this).val());
@@ -163,11 +159,16 @@ mainDraw = function() {
         }
         function uThresUpdate() {
             $('#uThresL').text($(this).val());
-            mainDraw();
+            rebuildData();
         }
         function drawStats(stats) {
-            var msg = "Number of users: " + stats.nUsers + "<br>Number of papers: "+ stats.nPapers;
-            $('#stats_text').append(msg);
+            var stats_txt = $('#stats_text');
+            var msg = "Total users: " + stats.tUsers +
+                "<br>Total papers: "+ stats.tPapers +
+                "<br><br>Users displayed: "+ stats.nUsers + " (" + Math.round(10000*stats.nUsers/stats.tUsers)/100 + "%)" +
+                "<br>Papers displayed: "+ stats.nPapers + " (" + Math.round(10000*stats.nPapers/stats.tPapers)/100 + "%)";
+            stats_txt.empty();
+            stats_txt.append(msg);
         }
     });
 
