@@ -1,15 +1,13 @@
 /**
  * Created by Lucas Parzianello on 2/27/16.
  */
-mainDraw = function() {
 
-    var w = 800,
-        h = 800,
-        rx = w / 2,
-        ry = h / 2,
-        m0,
-        rotate = 0;
+var mainDraw = function() {
 
+    // creating and defining variables and svg elements
+    var w = 800, h = 800,
+        rx = w / 2, ry = h / 2,
+        m0, rotate = 0;
     var splines = [];
     var nodes, links;
     var path = [];
@@ -19,9 +17,7 @@ mainDraw = function() {
         .sort(function (a, b) {
             return d3.ascending(a.key, b.key);
         });
-
     var bundle = d3.layout.bundle();
-
     var line = d3.svg.line.radial()
         .interpolate("bundle")
         .tension(.85)
@@ -31,7 +27,6 @@ mainDraw = function() {
         .angle(function (d) {
             return d.x / 180 * Math.PI;
         });
-
     d3.select(".Views").remove();
     var div = d3.select("body").insert("div").attr("class", "Views")
         .style("top", 0)
@@ -40,26 +35,26 @@ mainDraw = function() {
         .style("height", h + "px")
         .style("position", "absolute")
         .style("-webkit-backface-visibility", "hidden");
-
     var svg = div.append("svg:svg")
         .attr("width", w)
         .attr("height", h)
         .append("svg:g")
         .attr("transform", "translate(" + rx + "," + ry + ")");
-
     svg.append("svg:path")
         .attr("class", "arc")
         .attr("d", d3.svg.arc().outerRadius(ry - 120).innerRadius(0).startAngle(0).endAngle(2 * Math.PI))
         .on("mousedown", mousedown);
 
+    // reads JSON file and draws everything
     d3.json("data/data.json", function (classes) {
+        // gets count of total users and papers
         var tUsers=0, tPapers=0;
-
         for (c in classes){
             if (classes[c].name.split(".")[0] == "user") tUsers++;
             else if (classes[c].name.split(".")[0] == "paper") tPapers++;
         }
 
+        // adapts the dataset to current settings
         var rebuildData = function() {
             var importsThreshold = $("#uThres").val();
             var newData = [];
@@ -74,7 +69,6 @@ mainDraw = function() {
                 }
             }
             var nUsers = newData.length;
-
             // avoid inconsistency by adding each paper in imports to newData
             for (t in newData) {
                 for (i in newData[t].imports) {
@@ -135,7 +129,8 @@ mainDraw = function() {
                 .on("mouseover", mouseover)
                 .on("mouseout", mouseout);
 
-            stats = {
+            // creates statistics object and display (draw) them
+            var stats = {
                 tUsers: tUsers,
                 tPapers: tPapers,
                 nUsers: nUsers,
@@ -149,7 +144,6 @@ mainDraw = function() {
         // Controls interactivity
         d3.select("input[id=tension]").on("input", tensionUpdate);
         d3.select("input[id=uThres]").on("input", uThresUpdate);
-
         function tensionUpdate() {
             $('#tensionL').text(" "+$(this).val());
             line.tension(this.value / 100);
@@ -161,16 +155,18 @@ mainDraw = function() {
             $('#uThresL').text($(this).val());
             rebuildData();
         }
-        function drawStats(stats) {
-            var stats_txt = $('#stats_text');
-            var msg = "Total users: " + stats.tUsers +
-                "<br>Total papers: "+ stats.tPapers +
-                "<br><br>Users displayed: "+ stats.nUsers + " (" + Math.round(10000*stats.nUsers/stats.tUsers)/100 + "%)" +
-                "<br>Papers displayed: "+ stats.nPapers + " (" + Math.round(10000*stats.nPapers/stats.tPapers)/100 + "%)";
-            stats_txt.empty();
-            stats_txt.append(msg);
-        }
+
     });
+
+    function drawStats(stats) {
+        var stats_txt = $('#stats_text');
+        var msg = "Total users: " + stats.tUsers +
+            "<br>Total papers: "+ stats.tPapers +
+            "<br><br>Users displayed: "+ stats.nUsers + " (" + Math.round(10000*stats.nUsers/stats.tUsers)/100 + "%)" +
+            "<br>Papers displayed: "+ stats.nPapers + " (" + Math.round(10000*stats.nPapers/stats.tPapers)/100 + "%)";
+        stats_txt.empty();
+        stats_txt.append(msg);
+    }
 
     d3.select(window)
         .on("mousemove", mousemove)
