@@ -1,10 +1,11 @@
-# D3-projects
-----------
+D3-projects
+===========
+
 ## Visualization of a network using D3.js
 Data visualization of a conference network using D3.js library
 
 ### The data
-#####Format and purpose of the data
+##### Format and purpose of the data
 
 1. The data represents the users and papers of a conference;
 
@@ -15,7 +16,7 @@ Data visualization of a conference network using D3.js library
 ----------
 
 ### Data pre-processing
-#####Done once, prepares the data for the visualization front-end and creates the `.json`.
+##### Done once, prepares the data for the visualization front-end and creates the `.json`.
 
 1. The `data` directory contains scripts for data pre-processing;
 
@@ -28,7 +29,7 @@ Data visualization of a conference network using D3.js library
 ----------
 
 ### Data real-time processing and visualization
-#####Done in real time, for every user.
+##### Done in real time, for every user.
 1. [D3.js](d3js.org) is responsible for the real-time data retrieving and rendering;
 
 2. The data is obtained from `./data/data.json` using the `./scripts/ex4.js` script;
@@ -41,4 +42,4 @@ Data visualization of a conference network using D3.js library
 
 ----------
 
-*[Lucas Parzianello - 2016](https://github.com/lucas22/d3-projects)*
+*[Lucas Parzianello - 2016](https://github.com/lucaspar/d3-projects)*
